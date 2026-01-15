@@ -8,6 +8,7 @@ wheels/
 
 outputs/
 temps/
+datasets/*
 
 # Virtual environments
 .venv

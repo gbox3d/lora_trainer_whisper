@@ -68,19 +68,14 @@ python make_manifest.py --root ./datasets/Sample --wav_dir wav --label_dir lb
 
 torchrun --nproc_per_node=2 train_whisper_lora.py   --model_name "openai/whisper-large-v3"   --manifest "/home/agent01/works/dataset/71557/data/Training/manifest.jsonl"   --eval_manifest "/home/agent01/works/dataset/71557/data/Validation/manifest.jsonl"   --output_dir "outputs/large_v3_ddp"   --batch_size 32 --grad_accum 4 --fp16 --lr 1e-4   --use_gradient_checkpointing --max_audio_sec 30.0   --eval_steps 300  --max_steps 3000
 
+torchrun --nproc_per_node=2 train_whisper_lora.py   --model_name "openai/whisper-large-v3"   --manifest "/home/agent01/works/dataset/71557/data/Training/manifest.jsonl"   --eval_manifest "/home/agent01/works/dataset/71557/data/Validation/manifest.jsonl"   --output_dir "outputs/large_v3_ddp_retry_2"   --batch_size 32   --grad_accum 2   --fp16   --lr 1e-5   --use_gradient_checkpointing   --max_audio_sec 30.0   --eval_steps 50   --max_steps 500
 
-accelerate launch --num_processes 1 train_whisper_lora.py    --model_name openai/whisper-small    --manifest datasets/Sample/manifest.jsonl    --output_dir outputs/small_lora    --max_steps 20    --batch_size 2    --grad_accum 16
-
-CUDA_VISIBLE_DEVICES=0,1 accelerate launch --num_processes 2 train_whisper_lora.py   --model_name openai/whisper-small   --manifest datasets/Sample/manifest.jsonl   --output_dir outputs/small_lora   --max_steps 20   --batch_size 12   --grad_accum 8   --fp16   --max_audio_sec 20
-
-
-CUDA_VISIBLE_DEVICES=0,1 accelerate launch --num_processes 2 train_whisper_lora.py   --model_name openai/whisper-large-v3   --manifest datasets/Sample/manifest.jsonl   --output_dir outputs/largev3_lora   --max_steps 300   --batch_size 1   --grad_accum 32   --fp16   --max_audio_sec 8   --dataloader_workers 0
-
- CUDA_VISIBLE_DEVICES=1 accelerate launch --num_processes 1 train_whisper_lora.py   --model_name openai/whisper-large-v3   --manifest datasets/Sample/manifest.jsonl   --output_dir outputs/largev3_lora   --max_steps 300   --batch_size 16   --grad_accum 16   --fp16   --max_audio_sec 20   --use_gradient_checkpointing   --dataloader_workers 0
+CUDA_VISIBLE_DEVICES=1 accelerate launch --num_processes 1 train_whisper_lora.py   --model_name openai/whisper-large-v3   --manifest datasets/Sample/manifest.jsonl   --output_dir outputs/largev3_lora   --max_steps 300   --batch_size 16   --grad_accum 16   --fp16   --max_audio_sec 20   --use_gradient_checkpointing   --dataloader_workers 0
 
 
  # 단일 GPU
- python train_whisper_lora.py --model_name "openai/whisper-small" --manifest "datasets/Sample/manifest.jsonl" --output_dir "outputs/small_lora" --batch_size 16 --grad_accum 2 --max_steps 300 --fp16 --lr 1e-4
+python train_whisper_lora.py --model_name "openai/whisper-small" --manifest "datasets/Sample/manifest.jsonl" --output_dir "outputs/small_lora" --batch_size 16 --grad_accum 2 --max_steps 300 --fp16 --lr 1e-4
+python train_whisper_lora.py   --model_name "openai/whisper-small"   --manifest "datasets/Sample/manifest.jsonl"   --output_dir "outputs/small_lora"   --batch_size 16 --grad_accum 2 --max_steps 10 --fp16 --lr 1e-4   --eval_ratio 0.01   --eval_steps 300
 
 # GPU 전력 제한 (옵션)
 sudo nvidia-smi -i 1 -pl 280
@@ -92,7 +87,7 @@ sudo nvidia-smi -i 1 -pl 280
 ```bash
 
 python eval_dataset_lora.py --manifest datasets/Sample/manifest.jsonl --base_model openai/whisper-small --lora_dir outputs/small_lora --output_csv comparison_results.csv
-python eval_dataset_lora.py --manifest /home/agent01/works/dataset/71557/data/Validation/manifest.jsonl --base_model openai/whisper-large-v3 --lora_dir outputs/large_v3_ddp --output_csv outputs/comparison_results.csv --max_samples 200
+python eval_dataset_lora.py --manifest /home/agent01/works/dataset/71557/data/Validation/manifest.jsonl  --base_model openai/whisper-large-v3 --lora_dir outputs/large_v3_ddp --output_csv outputs/comparison_results.csv --max_samples 200
 
 ```
 
