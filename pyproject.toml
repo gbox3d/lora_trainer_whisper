@@ -11,8 +11,8 @@ dependencies = [
     "pyinstaller>=6.0.0",
     "python-dotenv>=1.0.0",
     "scipy>=1.10.0",
-    "torch>=2.9.1",       # (수정) 2.9.1 버전 명시
-    "torchaudio>=2.9.1",  # (수정) 2.9.1 버전 명시
+    "torch>=2.9.1",       
+    "torchaudio>=2.9.1",  
     "transformers>=4.36.0",
     "faster-whisper>=1.0.0",
     "jiwer>=3.0.0",
@@ -30,20 +30,20 @@ dependencies = [
     "tensorboard>=2.15.0",
 ]
 
-# 1. PyTorch CUDA Index (수정: cu128 -> cu130)
+
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 # 2. 패키지 소스 매핑 (수정: 인덱스 이름 변경)
 [tool.uv.sources]
-torch = { index = "pytorch-cu130" }
-torchvision = { index = "pytorch-cu130" }
-torchaudio = { index = "pytorch-cu130" }
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
 # torchcodec은 여전히 Git 소스 사용 (휠 없음)
-torchcodec = { git = "https://github.com/pytorch/torchcodec.git" }
+#torchcodec = { git = "https://github.com/pytorch/torchcodec.git" }
 
 # 3. 빌드 의존성
-[tool.uv.extra-build-dependencies]
-torchcodec = ["torch", "numpy", "pybind11", "cmake", "ninja"]
+#[tool.uv.extra-build-dependencies]
+#torchcodec = ["torch", "numpy", "pybind11", "cmake", "ninja"]
