@@ -76,9 +76,13 @@ CUDA_VISIBLE_DEVICES=1 accelerate launch --num_processes 1 train_whisper_lora.py
  # 단일 GPU
 python train_whisper_lora.py --model_name "openai/whisper-small" --manifest "datasets/Sample/manifest.jsonl" --output_dir "outputs/small_lora" --batch_size 16 --grad_accum 2 --max_steps 300 --fp16 --lr 1e-4
 python train_whisper_lora.py   --model_name "openai/whisper-small"   --manifest "datasets/Sample/manifest.jsonl"   --output_dir "outputs/small_lora"   --batch_size 16 --grad_accum 2 --max_steps 10 --fp16 --lr 1e-4   --eval_ratio 0.01   --eval_steps 300
+python train_whisper_lora.py   --model_name "openai/whisper-large-v3"   --manifest "/home/miso/datasets/71557/Training/manifest.jsonl"   --output_dir "outputs/large_v3_001"   --batch_size 16 --grad_accum 2 --max_steps 500 --fp16 --lr 1e-5   --eval_ratio 0.01   --eval_steps 100
 
 # GPU 전력 제한 (옵션)
 sudo nvidia-smi -i 1 -pl 280
+
+## 텐서보드
+tensorboard --logdir outputs/
 
 ```
 
@@ -88,6 +92,7 @@ sudo nvidia-smi -i 1 -pl 280
 
 python eval_dataset_lora.py --manifest datasets/Sample/manifest.jsonl --base_model openai/whisper-small --lora_dir outputs/small_lora --output_csv comparison_results.csv
 python eval_dataset_lora.py --manifest /home/agent01/works/dataset/71557/data/Validation/manifest.jsonl  --base_model openai/whisper-large-v3 --lora_dir outputs/large_v3_ddp --output_csv outputs/comparison_results.csv --max_samples 200
+python eval_dataset_lora.py --manifest /home/miso/datasets/71557/Validation/manifest.jsonl  --base_model openai/whisper-large-v3 --lora_dir outputs/large_v3_002 --output_csv outputs/comparison_results_02.csv --max_samples 20
 
 ```
 
@@ -109,4 +114,6 @@ python eval_dataset_lora.py --manifest /home/agent01/works/dataset/71557/data/Va
 ct2-transformers-converter --model outputs/merged_small --output_dir outputs/ct2_small --quantization int8_float16 --force
 
 ```
+
+
 

@@ -6,8 +6,8 @@ from pathlib import Path
 def parse_args():
     parser = argparse.ArgumentParser(description="데이터셋 매니페스트 생성 스크립트")
     parser.add_argument("--root", type=str, default="datasets/Sample", help="데이터셋 루트 경로")
-    parser.add_argument("--wav_dir", type=str, default="01.원천데이터", help="오디오 폴더명")
-    parser.add_argument("--label_dir", type=str, default="02.라벨링데이터", help="라벨 폴더명")
+    parser.add_argument("--wav_dir", type=str, default="wav", help="오디오 폴더명")
+    parser.add_argument("--label_dir", type=str, default="lb", help="라벨 폴더명")
     parser.add_argument("--output", type=str, default="manifest.jsonl", help="출력 파일명")
     return parser.parse_args()
 
