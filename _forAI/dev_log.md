@@ -8,3 +8,4 @@
 - 2026-04-03: Switched manifest generation toward manifest-relative `audio` paths, added shared manifest path resolution helpers, and updated train/eval consumers to resolve relative paths at read time.
 - 2026-04-03: Added `make_manifest.py` options for `--audio-path-mode` and parallel `--workers`, and documented the new operational rule to avoid broken absolute paths behind symlinks or network-mounted storage.
 - 2026-04-03: Added compatibility handling in `train_whisper_lora.py` for both legacy dataset audio dict payloads and newer `torchcodec` `AudioDecoder` payloads observed in the local environment.
+- 2026-04-03: Rebuilt `/home/miso/datasets/Sample/manifest.jsonl` with the new manifest workflow, verified the file now stores `wav/...` relative audio paths, and confirmed `_load_and_cast_manifest` plus `DataCollatorSpeechSeq2Seq` can read the regenerated sample dataset end-to-end.
