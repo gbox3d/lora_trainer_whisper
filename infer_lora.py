@@ -7,16 +7,16 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from peft import PeftModel
 
 
-def parse_args():
+def parse_args(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument("--base_model", default="openai/whisper-small")
+    p.add_argument("--base_model", default="openai/whisper-large-v3")
     p.add_argument("--lora_dir", default="outputs/small_lora")
     p.add_argument("--wav", required=True)
     p.add_argument("--language", default="ko")
     p.add_argument("--task", default="transcribe")
     p.add_argument("--max_new_tokens", type=int, default=128)
     p.add_argument("--compare_base", action="store_true")
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def load_audio_any_sr(wav_path: str):
@@ -73,8 +73,8 @@ def run_generate(model, processor, audio_16k, device, max_new_tokens: int):
     return processor.batch_decode(pred_ids, skip_special_tokens=True)[0]
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     processor = WhisperProcessor.from_pretrained(args.lora_dir, language=args.language, task=args.task)
@@ -94,10 +94,24 @@ def main():
     lora_text = run_generate(model, processor, audio_16k, device, args.max_new_tokens)
     print("\n==== LoRA RESULT ====\n", lora_text, "\n")
 
+    base_text = None
     if args.compare_base:
         base.eval()
         base_text = run_generate(base, processor, audio_16k, device, args.max_new_tokens)
         print("\n==== BASE RESULT ====\n", base_text, "\n")
+
+    return {
+        "wav": str(Path(args.wav).resolve()),
+        "base_model": args.base_model,
+        "lora_dir": str(Path(args.lora_dir).resolve()),
+        "language": args.language,
+        "task": args.task,
+        "sample_rate": sr,
+        "device": device,
+        "lora_text": lora_text,
+        "base_text": base_text,
+        "compare_base": bool(args.compare_base),
+    }
 
 
 if __name__ == "__main__":

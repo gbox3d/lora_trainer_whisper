@@ -11,7 +11,7 @@ from peft import PeftModel
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--wav", required=True, help="input wav path")
-    p.add_argument("--base_model", default="openai/whisper-small")
+    p.add_argument("--base_model", default="openai/whisper-large-v3")
     p.add_argument("--lora_dir", default="outputs/small_lora")
     p.add_argument("--language", default="ko")
     p.add_argument("--task", default="transcribe")

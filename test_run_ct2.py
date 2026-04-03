@@ -1,29 +1,67 @@
-# test_run_ct2.py
-from faster_whisper import WhisperModel
+import argparse
 import time
+from pathlib import Path
 
-# 변환된 모델 경로
-model_path = "outputs/ct2_small"
-# 테스트할 오디오 파일 (경로 수정 필요)
-audio_path = "datasets/Sample/wav/SPK014/SPK014KBSCU001/SPK014KBSCU001F001.wav" 
+from faster_whisper import WhisperModel
 
-print(f"🚀 Loading CT2 Model from {model_path}...")
-# device="cuda"로 설정하면 GPU 사용
-model = WhisperModel(model_path, device="cuda", compute_type="float16")
 
-print("🎤 Transcribing...")
-start = time.time()
+def parse_args(argv=None):
+    p = argparse.ArgumentParser()
+    p.add_argument("--model-path", default="outputs/ct2_small")
+    p.add_argument(
+        "--audio-path",
+        default="datasets/Sample/wav/SPK014/SPK014KBSCU001/SPK014KBSCU001F001.wav",
+    )
+    p.add_argument("--device", default="cuda")
+    p.add_argument("--compute-type", default="float16")
+    p.add_argument("--language", default="ko")
+    p.add_argument("--beam-size", type=int, default=5)
+    return p.parse_args(argv)
 
-segments, info = model.transcribe(audio_path, language="ko", beam_size=5)
 
-print(f"\n[Detected Language]: {info.language} (Probability: {info.language_probability:.2f})")
-print("-" * 30)
+def main(argv=None):
+    args = parse_args(argv)
 
-full_text = ""
-for segment in segments:
-    print(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment.text}")
-    full_text += segment.text
+    print(f"🚀 Loading CT2 Model from {args.model_path}...")
+    model = WhisperModel(
+        args.model_path,
+        device=args.device,
+        compute_type=args.compute_type,
+    )
 
-print("-" * 30)
-end = time.time()
-print(f"✅ Total Time: {end - start:.4f} sec")
+    print("🎤 Transcribing...")
+    start = time.time()
+    segments, info = model.transcribe(
+        args.audio_path,
+        language=args.language,
+        beam_size=args.beam_size,
+    )
+
+    print(
+        f"\n[Detected Language]: {info.language} "
+        f"(Probability: {info.language_probability:.2f})"
+    )
+    print("-" * 30)
+
+    full_text = ""
+    for segment in segments:
+        print(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment.text}")
+        full_text += segment.text
+
+    print("-" * 30)
+    elapsed = time.time() - start
+    print(f"✅ Total Time: {elapsed:.4f} sec")
+    return {
+        "model_path": str(Path(args.model_path).resolve()),
+        "audio_path": str(Path(args.audio_path).resolve()),
+        "device": args.device,
+        "compute_type": args.compute_type,
+        "language": info.language,
+        "language_probability": info.language_probability,
+        "text": full_text.strip(),
+        "elapsed_seconds": elapsed,
+    }
+
+
+if __name__ == "__main__":
+    main()

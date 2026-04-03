@@ -20,10 +20,10 @@ from peft import PeftModel
 # ==========================================
 # 1. Args
 # ==========================================
-def parse_args():
+def parse_args(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", type=str, required=True, help="평가할 manifest.jsonl 경로")
-    p.add_argument("--base_model", type=str, default="openai/whisper-small", help="베이스 모델")
+    p.add_argument("--base_model", type=str, default="openai/whisper-large-v3", help="베이스 모델")
     p.add_argument("--lora_dir", type=str, required=True, help="학습된 LoRA adapter 경로 (checkpoint-XXXX 포함 가능)")
     p.add_argument("--output_csv", type=str, default="comparison_results.csv", help="결과 저장 CSV 파일")
     p.add_argument("--language", type=str, default="ko")
@@ -36,7 +36,7 @@ def parse_args():
     # 디버깅/진단 옵션
     p.add_argument("--debug_first_n", type=int, default=0, help="처음 N개 샘플은 출력(Ref/Base/LoRA) 보여주기")
     p.add_argument("--disable_adapter", action="store_true", help="LoRA 어댑터를 끈 상태로만 평가 (진단용)")
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 # ==========================================
@@ -156,8 +156,8 @@ def check_adapter_files(lora_dir: str):
 # ==========================================
 # 3. Main
 # ==========================================
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     random.seed(args.seed)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -176,7 +176,10 @@ def main():
     print("⏳ Loading Models...")
     processor = WhisperProcessor.from_pretrained(args.base_model)
 
-    base_model = WhisperForConditionalGeneration.from_pretrained(args.base_model, dtype=dtype).to(device)
+    base_model = WhisperForConditionalGeneration.from_pretrained(
+        args.base_model,
+        torch_dtype=dtype,
+    ).to(device)
     base_model.eval()
 
     lora_path = resolve_lora_dir(args.lora_dir)
@@ -297,7 +300,17 @@ def main():
     # --- Summary
     if count == 0:
         print("No valid samples processed.")
-        return
+        return {
+            "manifest": str(Path(args.manifest).resolve()),
+            "base_model": args.base_model,
+            "lora_dir": str(Path(args.lora_dir).resolve()),
+            "output_csv": str(Path(args.output_csv).resolve()),
+            "sample_count": 0,
+            "avg_cer_base": None,
+            "avg_cer_lora": None,
+            "improvement": None,
+            "relative_improvement_pct": None,
+        }
 
     avg_base = total_cer_base / count
     avg_lora = total_cer_lora / count
@@ -328,6 +341,19 @@ def main():
             print(f"Base: {row['Base_Pred']}")
             print(f"LoRA: {row['LoRA_Pred']}")
             print("-" * 30)
+
+    return {
+        "manifest": str(Path(args.manifest).resolve()),
+        "base_model": args.base_model,
+        "lora_dir": str(Path(lora_path).resolve()),
+        "output_csv": str(out_path.resolve()),
+        "sample_count": count,
+        "avg_cer_base": avg_base,
+        "avg_cer_lora": avg_lora,
+        "improvement": improvement,
+        "relative_improvement_pct": rel,
+        "disable_adapter": bool(args.disable_adapter),
+    }
 
 
 if __name__ == "__main__":

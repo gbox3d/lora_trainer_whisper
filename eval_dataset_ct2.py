@@ -24,7 +24,7 @@ from faster_whisper import WhisperModel
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", type=str, default="datasets/Sample/manifest.jsonl", help="평가할 데이터셋 경로")
-    p.add_argument("--base_model", type=str, default="openai/whisper-small", help="비교할 PyTorch 베이스 모델")
+    p.add_argument("--base_model", type=str, default="openai/whisper-large-v3", help="비교할 PyTorch 베이스 모델")
     p.add_argument("--ct2_dir", type=str, default="outputs/ct2_small", help="변환된 CT2 모델 경로")
     p.add_argument("--output_csv", type=str, default="compare_ct2_result.csv", help="결과 저장 파일명")
     p.add_argument("--language", default="ko")

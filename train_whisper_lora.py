@@ -3,6 +3,7 @@ import os
 import argparse
 import inspect
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
@@ -17,11 +18,13 @@ from transformers import (
 )
 from peft import LoraConfig, get_peft_model, TaskType
 
+from workflow_utils import checkpoint_names
 
-def parse_args():
+
+def parse_args(argv=None):
     p = argparse.ArgumentParser()
 
-    p.add_argument("--model_name", type=str, default="openai/whisper-small")
+    p.add_argument("--model_name", type=str, default="openai/whisper-large-v3")
     p.add_argument("--manifest", type=str, default="datasets/Sample/manifest.jsonl")
     p.add_argument("--output_dir", type=str, default="outputs/lora")
 
@@ -61,7 +64,7 @@ def parse_args():
         help="eval_manifest 없을 때 train에서 분리할 비율",
     )
 
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def patch_whisper_forward_for_peft(whisper_model: WhisperForConditionalGeneration):
@@ -158,8 +161,8 @@ def _split_train_eval(train_ds, eval_ratio: float, seed: int):
     return split["train"], split["test"]
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     set_seed(args.seed)
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -249,12 +252,27 @@ def main():
         ),
     )
 
-    trainer.train()
+    train_result = trainer.train()
 
     model.save_pretrained(args.output_dir)
     processor.save_pretrained(args.output_dir)
 
     print(f"\n✅ Done. Saved LoRA adapter to: {args.output_dir}\n")
+    output_dir = Path(args.output_dir).resolve()
+    checkpoints = checkpoint_names(output_dir)
+    return {
+        "output_dir": str(output_dir),
+        "model_name": args.model_name,
+        "manifest": str(Path(args.manifest).resolve()),
+        "eval_manifest": str(Path(args.eval_manifest).resolve()) if args.eval_manifest else None,
+        "language": args.language,
+        "task": args.task,
+        "global_step": int(getattr(trainer.state, "global_step", 0) or 0),
+        "best_model_checkpoint": getattr(trainer.state, "best_model_checkpoint", None),
+        "checkpoint_count": len(checkpoints),
+        "latest_checkpoint": checkpoints[-1] if checkpoints else None,
+        "train_metrics": getattr(train_result, "metrics", {}) or {},
+    }
 
 
 if __name__ == "__main__":

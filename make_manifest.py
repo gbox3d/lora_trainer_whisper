@@ -3,13 +3,13 @@ import re
 import argparse
 from pathlib import Path
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="데이터셋 매니페스트 생성 스크립트")
     parser.add_argument("--root", type=str, default="datasets/Sample", help="데이터셋 루트 경로")
     parser.add_argument("--wav_dir", type=str, default="wav", help="오디오 폴더명")
     parser.add_argument("--label_dir", type=str, default="lb", help="라벨 폴더명")
     parser.add_argument("--output", type=str, default="manifest.jsonl", help="출력 파일명")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 def normalize_text(t: str) -> str:
     # (A)/(B) -> B 패턴 처리
@@ -20,8 +20,8 @@ def normalize_text(t: str) -> str:
     t = re.sub(r"\s+", " ", t).strip()
     return t
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     
     root = Path(args.root)
     wav_root = root / args.wav_dir
@@ -30,7 +30,7 @@ def main():
 
     if not lab_root.exists():
         print(f"❌ Error: 라벨 폴더를 찾을 수 없습니다: {lab_root}")
-        return
+        raise FileNotFoundError(f"라벨 폴더를 찾을 수 없습니다: {lab_root}")
 
     print(f"📂 Root: {root}")
     print(f"   Searching labels in: {lab_root}")
@@ -66,6 +66,13 @@ def main():
     print("-" * 30)
     print(f"✅ Created: {out_path}")
     print(f"📊 Total Rows: {count}")
+    return {
+        "root": str(root.resolve()),
+        "wav_dir": args.wav_dir,
+        "label_dir": args.label_dir,
+        "manifest_path": str(out_path.resolve()),
+        "row_count": count,
+    }
 
 if __name__ == "__main__":
     main()
