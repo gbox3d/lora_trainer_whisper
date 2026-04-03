@@ -20,6 +20,8 @@ def parse_args(argv=None):
     manifest.add_argument("--wav-dir", default="wav")
     manifest.add_argument("--label-dir", default="lb")
     manifest.add_argument("--output", default="manifest.jsonl")
+    manifest.add_argument("--audio-path-mode", choices=("relative", "absolute"), default="relative")
+    manifest.add_argument("--workers", type=int, default=16)
 
     train = sub.add_parser("train")
     train.add_argument("--model-name", default="openai/whisper-large-v3")
@@ -134,6 +136,10 @@ def handle_manifest(args: argparse.Namespace) -> dict[str, Any]:
             args.label_dir,
             "--output",
             args.output,
+            "--audio_path_mode",
+            args.audio_path_mode,
+            "--workers",
+            str(args.workers),
         ]
     )
 

@@ -16,6 +16,8 @@ import soundfile as sf
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from peft import PeftModel
 
+from manifest_utils import read_manifest_records
+
 
 # ==========================================
 # 1. Args
@@ -113,14 +115,7 @@ def calc_cer(ref: str, hyp: str) -> float:
 
 
 def read_manifest(path: str):
-    data = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            data.append(json.loads(line))
-    return data
+    return read_manifest_records(path)
 
 
 def resolve_lora_dir(lora_dir: str) -> str:

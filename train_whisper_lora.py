@@ -18,6 +18,7 @@ from transformers import (
 )
 from peft import LoraConfig, get_peft_model, TaskType
 
+from manifest_utils import resolve_audio_path, resolve_manifest_path
 from workflow_utils import checkpoint_names
 
 
@@ -90,6 +91,30 @@ def patch_whisper_forward_for_peft(whisper_model: WhisperForConditionalGeneratio
     whisper_model.forward = patched_forward
 
 
+def _extract_audio_array(audio_value: Any) -> np.ndarray:
+    if isinstance(audio_value, dict):
+        audio_array = audio_value.get("array")
+    elif hasattr(audio_value, "get_all_samples"):
+        audio_array = audio_value.get_all_samples().data
+    else:
+        raise TypeError(f"Unsupported audio payload type: {type(audio_value)!r}")
+
+    if isinstance(audio_array, torch.Tensor):
+        audio_array = audio_array.detach().cpu().numpy()
+
+    audio_array = np.asarray(audio_array, dtype=np.float32)
+
+    if audio_array.ndim == 2:
+        # torchcodec returns channel-first [channels, samples], while older datasets
+        # payloads often used sample-first [samples, channels].
+        if audio_array.shape[0] <= 8 and audio_array.shape[1] > audio_array.shape[0]:
+            audio_array = audio_array.mean(axis=0)
+        else:
+            audio_array = audio_array.mean(axis=1)
+
+    return audio_array
+
+
 @dataclass
 class DataCollatorSpeechSeq2Seq:
     processor: WhisperProcessor
@@ -98,10 +123,7 @@ class DataCollatorSpeechSeq2Seq:
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         audio_list = []
         for f in features:
-            a = f["audio"]["array"]
-            if isinstance(a, np.ndarray) and a.ndim == 2:
-                a = a.mean(axis=1)
-            a = np.asarray(a, dtype=np.float32)
+            a = _extract_audio_array(f["audio"])
 
             sr = 16000
             max_len = int(self.max_audio_sec * sr)
@@ -141,7 +163,15 @@ class WhisperTrainer(Trainer):
 
 
 def _load_and_cast_manifest(path: str):
-    ds = load_dataset("json", data_files=path, split="train")
+    manifest_path = resolve_manifest_path(path)
+    ds = load_dataset("json", data_files=str(manifest_path), split="train")
+    ds = ds.map(
+        lambda batch: {
+            "audio": [resolve_audio_path(audio_path, manifest_path) for audio_path in batch["audio"]],
+        },
+        batched=True,
+        desc="Resolving manifest audio paths",
+    )
     return ds.cast_column("audio", Audio(sampling_rate=16000))
 
 

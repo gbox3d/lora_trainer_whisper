@@ -18,9 +18,10 @@
 ## Important scripts
 
 - `runner_cli.py`: 통합 CLI 진입점 (dalus_server가 subprocess로 호출). subcommand: manifest, train, eval, infer, merge, ct2-export
+- `manifest_utils.py`: manifest 경로 해석 공용 유틸. relative `audio` 경로를 manifest 위치 기준 절대경로로 복원
 - `workflow_utils.py`: 공유 유틸리티 (JSON 쓰기, 타임스탬프, 체크포인트 탐색)
 - `train_whisper_lora.py`: main training entrypoint for Whisper LoRA fine-tuning
-- `make_manifest.py`: builds `manifest.jsonl` from dataset label/audio structure
+- `make_manifest.py`: builds `manifest.jsonl` from dataset label/audio structure; 상대경로 `audio` 저장과 병렬 label scan 지원
 - `eval_dataset_lora.py`: compares LoRA output against a base Whisper model on a manifest
 - `infer_lora.py`: single-file inference using a base model plus LoRA adapter
 - `compare_infer.py`: side-by-side base vs LoRA inference with optional normalization and metrics
@@ -54,6 +55,9 @@
 ## Notes
 
 - The project uses `uv` and pins PyTorch packages through a custom CUDA 13.0 index in `pyproject.toml`.
+- Manifest `audio` 필드는 2026-04-03부터 기본적으로 `manifest.jsonl` 기준 상대경로를 사용한다.
+- 학습/평가 로더는 relative/absolute 두 형식을 모두 읽도록 맞춰져 있어, 기존 manifest와 새 manifest를 모두 소비할 수 있다.
+- `train_whisper_lora.py` collator는 `datasets`의 legacy dict payload와 newer `torchcodec` `AudioDecoder` payload를 둘 다 처리한다.
 - `train_whisper_lora.py` supports either a dedicated `--eval_manifest` or an automatic train/eval split via `--eval_ratio`.
 - 기본 모델이 `openai/whisper-large-v3`로 변경됨 (2026-04-03). 모든 스크립트 CLI 기본값 일괄 변경.
 - Most scripts assume Korean transcription defaults: `language=ko`, `task=transcribe`, and 16 kHz audio input.

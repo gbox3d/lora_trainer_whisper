@@ -1,7 +1,12 @@
 import json
+import os
 import re
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+from manifest_utils import relativize_audio_path
+
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="데이터셋 매니페스트 생성 스크립트")
@@ -9,6 +14,20 @@ def parse_args(argv=None):
     parser.add_argument("--wav_dir", type=str, default="wav", help="오디오 폴더명")
     parser.add_argument("--label_dir", type=str, default="lb", help="라벨 폴더명")
     parser.add_argument("--output", type=str, default="manifest.jsonl", help="출력 파일명")
+    parser.add_argument(
+        "--audio_path_mode",
+        "--audio-path-mode",
+        dest="audio_path_mode",
+        choices=("relative", "absolute"),
+        default="relative",
+        help="manifest에 저장할 audio 경로 형식",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=min(16, max(4, (os.cpu_count() or 4))),
+        help="라벨 JSON 읽기 병렬 worker 수",
+    )
     return parser.parse_args(argv)
 
 def normalize_text(t: str) -> str:
@@ -19,6 +38,34 @@ def normalize_text(t: str) -> str:
     # 공백 정리
     t = re.sub(r"\s+", " ", t).strip()
     return t
+
+
+def build_manifest_row(label_path: Path, lab_root: Path, wav_root: Path, out_path: Path, audio_path_mode: str):
+    obj = json.loads(label_path.read_text(encoding="utf-8"))
+
+    if "script" not in obj or "text" not in obj["script"]:
+        return None
+
+    text = normalize_text(obj["script"]["text"])
+    rel = label_path.relative_to(lab_root).with_suffix(".wav")
+    wav_path = wav_root / rel
+
+    if not wav_path.exists():
+        return None
+
+    audio_path = (
+        relativize_audio_path(wav_path, out_path)
+        if audio_path_mode == "relative"
+        else str(wav_path.resolve())
+    )
+    return {"audio": audio_path, "text": text}
+
+
+def safe_build_manifest_row(label_path: Path, lab_root: Path, wav_root: Path, out_path: Path, audio_path_mode: str):
+    try:
+        return label_path, build_manifest_row(label_path, lab_root, wav_root, out_path, audio_path_mode), None
+    except Exception as error:
+        return label_path, None, error
 
 def main(argv=None):
     args = parse_args(argv)
@@ -37,31 +84,38 @@ def main(argv=None):
     print(f"   Matching wavs in:    {wav_root}")
 
     count = 0
+    label_paths = sorted(lab_root.rglob("*.json"))
     with out_path.open("w", encoding="utf-8") as out:
-        # rglob을 사용하여 하위 폴더까지 탐색
-        for jp in lab_root.rglob("*.json"):
-            try:
-                obj = json.loads(jp.read_text(encoding="utf-8"))
-                
-                # JSON 구조에 따라 script 키가 없을 수도 있으므로 예외처리
-                if "script" not in obj or "text" not in obj["script"]:
+        if args.workers <= 1:
+            for label_path in label_paths:
+                try:
+                    row = build_manifest_row(label_path, lab_root, wav_root, out_path, args.audio_path_mode)
+                    if row is None:
+                        continue
+                    out.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    count += 1
+                except Exception as e:
+                    print(f"Error processing {label_path}: {e}")
                     continue
-                    
-                text = normalize_text(obj["script"]["text"])
-
-                # 라벨 파일의 상대 경로를 이용해 wav 경로 추론
-                rel = jp.relative_to(lab_root).with_suffix(".wav")
-                wav_path = wav_root / rel
-                
-                if not wav_path.exists():
-                    # print(f"⚠️ Missing audio: {wav_path}") # 디버깅 시 주석 해제
-                    continue
-
-                out.write(json.dumps({"audio": str(wav_path), "text": text}, ensure_ascii=False) + "\n")
-                count += 1
-            except Exception as e:
-                print(f"Error processing {jp}: {e}")
-                continue
+        else:
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                for label_path, row, error in executor.map(
+                    lambda current_path: safe_build_manifest_row(
+                        current_path,
+                        lab_root,
+                        wav_root,
+                        out_path,
+                        args.audio_path_mode,
+                    ),
+                    label_paths,
+                ):
+                    if error is not None:
+                        print(f"Error processing {label_path}: {error}")
+                        continue
+                    if row is None:
+                        continue
+                    out.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    count += 1
 
     print("-" * 30)
     print(f"✅ Created: {out_path}")
@@ -72,6 +126,8 @@ def main(argv=None):
         "label_dir": args.label_dir,
         "manifest_path": str(out_path.resolve()),
         "row_count": count,
+        "audio_path_mode": args.audio_path_mode,
+        "workers": args.workers,
     }
 
 if __name__ == "__main__":

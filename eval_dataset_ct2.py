@@ -16,6 +16,7 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 # CTranslate2 (CT2)
 from faster_whisper import WhisperModel
+from manifest_utils import read_manifest_records
 
 # ==========================================
 # 1. 유틸리티 함수 (기존 유지)
@@ -102,14 +103,11 @@ def main():
     print("✅ Models Loaded Successfully.")
 
     # --- 2. 데이터 로딩 ---
-    dataset = []
     if not os.path.exists(args.manifest):
         print("❌ Manifest file not found.")
         return
 
-    with open(args.manifest, 'r', encoding='utf-8') as f:
-        for line in f:
-            dataset.append(json.loads(line))
+    dataset = read_manifest_records(args.manifest)
             
     if len(dataset) > args.max_samples:
         dataset = random.sample(dataset, args.max_samples)

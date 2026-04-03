@@ -164,7 +164,9 @@ python runner_cli.py manifest \
   --root ./datasets/Sample \
   --wav-dir wav \
   --label-dir lb \
-  --output manifest.jsonl
+  --output manifest.jsonl \
+  --audio-path-mode relative \
+  --workers 16
 ```
 
 | 옵션 | 기본값 | 설명 |
@@ -173,6 +175,11 @@ python runner_cli.py manifest \
 | `--wav-dir` | `wav` | 오디오 폴더명 |
 | `--label-dir` | `lb` | 라벨 폴더명 |
 | `--output` | `manifest.jsonl` | 출력 파일명 (root 기준 상대 경로) |
+| `--audio-path-mode` | `relative` | `audio` 필드를 `manifest.jsonl` 기준 상대경로 또는 절대경로로 저장 |
+| `--workers` | `16` | 라벨 JSON 읽기 병렬 worker 수 |
+
+- 기본값인 `relative`를 권장합니다. symlink, 외장 디스크, 마운트 위치가 바뀌어도 manifest를 다시 덜 만들게 됩니다.
+- train/eval 스크립트는 relative/absolute 두 형식을 모두 읽을 수 있도록 처리합니다.
 
 ### train
 
