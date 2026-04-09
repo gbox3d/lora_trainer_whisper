@@ -29,5 +29,12 @@
 - `train_whisper_lora.py` can auto-split train/eval if `--eval_manifest` is not supplied.
 - `train_whisper_lora.py`, `eval_dataset_lora.py`, and `eval_dataset_ct2.py` resolve manifest-relative audio paths before reading files.
 - Current `datasets` releases may return `torchcodec` audio decoders instead of the older `{"array": ...}` dict shape; the collator now has compatibility handling for both.
-- `merge_peft.py` currently uses fixed defaults for `BASE_MODEL`, `LORA_DIR`, and `MERGED_DIR`; it is a good refactor target.
-- `test_run_ct2.py` is a manual check script and currently assumes a GPU-capable environment and sample audio path.
+- `merge_peft.py` and `test_run_ct2.py` are now argparse-based, but they still keep convenience defaults and are best treated as operator tools rather than a stable public API.
+- Repository documentation should prefer `uv run ...` examples even when plain `python ...` would work inside an activated environment.
+
+## Doc audit: source vs docs
+
+- `README.md` had several examples still using `python ...`; source and 운영 기준은 `uv` 중심이므로 `uv run ...` 쪽이 더 정확하다.
+- `README.md` 일부 예시와 옵션 표는 예전 기본값인 `openai/whisper-small`을 가리켰지만, 실제 코드 기본값은 현재 `openai/whisper-large-v3`다.
+- 상태 파일 설명은 대체로 맞았지만, 실제 소스에서는 학습과 평가가 서로 다른 파일명(`run_status.json`, `eval_status.json`)을 쓴다.
+- `infer`는 항상 결과 파일을 남기지 않고, `runner_cli.py infer --result-json`을 넘겼을 때만 JSON을 기록한다.

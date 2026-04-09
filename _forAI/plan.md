@@ -2,7 +2,7 @@
 
 ## 현재 목표
 
-- 현재 `dalus_server` Whisper 브랜치가 이 저장소를 안정적으로 호출할 수 있도록, 이 저장소를 "사람이 직접 치는 스크립트 묶음"에서 "웹 UI가 호출 가능한 실행 엔진"으로 정리한다.
+- 현재 `dalus_server` Whisper 브랜치가 이 저장소를 안정적으로 호출할 수 있도록, 이미 추가된 CLI/산출물 계약을 유지하면서 문서와 실제 소스의 차이를 줄인다.
 - 학습/평가/추론/병합/CT2 변환의 실제 로직은 이 저장소가 계속 책임지고, 웹 UI는 이 저장소의 표준 CLI와 산출물 규약만 믿고 동작하게 만든다.
 
 ## 이번 계획에서 고정할 것
@@ -12,7 +12,7 @@
 - TensorBoard 로그 위치는 현재처럼 `output_dir/runs`를 기본으로 유지한다.
 - `dalus_server`는 이 저장소를 직접 import 하기보다 CLI 프로세스로 호출하는 것을 1차 기준으로 둔다.
 
-## v1 완료 기준
+## 현재 기준선
 
 - `dalus_server`가 아래 작업을 CLI로 시작할 수 있다.
   - manifest 생성
@@ -24,6 +24,7 @@
 - 각 작업은 성공/실패를 명확한 종료 코드로 반환한다.
 - 각 run/output 디렉토리에는 웹 UI가 읽을 수 있는 메타 파일이 남는다.
 - 경로 규약이 정해져서 절대 경로 예시를 UI가 그대로 복사하지 않아도 된다.
+- 문서는 `uv` 기반 실행 방식과 실제 기본값을 기준으로 유지한다.
 
 ## 구현 원칙
 
@@ -44,11 +45,11 @@
 - `test_run_ct2.py`
 - `make_manifest.py`
 
-### 새로 둘 파일
+### 현재 공통 진입점
 
 - `runner_cli.py`
-  - 웹 UI가 직접 호출할 공통 진입점
-  - 서브커맨드 후보: `manifest`, `train`, `eval`, `infer`, `merge`, `ct2-export`
+  - 웹 UI가 직접 호출하는 공통 진입점
+  - 서브커맨드: `manifest`, `train`, `eval`, `infer`, `merge`, `ct2-export`
 
 ### 이 단계에서 정할 CLI 규약
 
@@ -125,14 +126,15 @@
 
 ### 호출 계약
 
-- 모든 작업은 `python runner_cli.py <subcommand> ...` 형식으로 실행한다.
+- 모든 작업은 기본적으로 `uv run python runner_cli.py <subcommand> ...` 형식으로 실행한다.
 - 성공 시 exit code `0`
 - 실패 시 exit code `!= 0`
 - 실패 시 stderr 요약 + summary/status JSON 동시 기록
 
 ### 상태 계약
 
-- 장기 실행 작업은 `run_status.json`을 주기적으로 갱신한다.
+- 장기 실행 작업은 상태 JSON을 갱신한다.
+- 학습은 `run_status.json`, 평가는 `eval_status.json`을 사용한다.
 - 최소 필드
   - `state`: `idle | running | completed | failed | stopped`
   - `message`
@@ -174,11 +176,9 @@
 
 ## 지금 브랜치에서 바로 할 일
 
-1. `runner_cli.py` 추가
-2. `merge_peft.py`, `test_run_ct2.py`를 argparse 기반으로 전환
-3. `train_whisper_lora.py`에 `run_config.json`, `run_status.json`, `train_summary.json` 기록 추가
-4. `eval_dataset_lora.py`, `infer_lora.py`에 summary JSON 출력 추가
-5. 샘플 데이터 기준 최소 smoke run 문서화
+1. `README.md`와 `_forAI` 문서를 실제 소스 기본값과 `uv` 실행 기준에 맞춰 유지
+2. `dalus_server`가 읽는 상태/요약 파일 계약이 바뀌면 문서를 같은 턴에 함께 갱신
+3. 샘플 데이터 기준 최소 smoke run 절차를 계속 검증 가능한 형태로 정리
 
 ## 리스크
 

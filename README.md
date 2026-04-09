@@ -1,7 +1,9 @@
 # Whisper LoRA Trainer
 
-Whisper 모델의 **LoRA 파인튜닝, 평가, 추론, 모델 병합, CT2 변환**을 수행하는 학습 엔진.
+Whisper 모델의 **LoRA 파인튜닝, 평가, 추론, 모델 병합, CT2 변환**을 수행하는 학습 엔진입니다.
 `dalus_server` WebUI가 이 저장소의 `runner_cli.py`를 CLI 프로세스로 호출하여 모든 워크플로우를 제어합니다.
+
+이 저장소는 `uv` 기반으로 운영합니다. 문서의 모든 예시는 기본적으로 `uv run ...` 기준입니다.
 
 ## 현재 버전
 
@@ -59,7 +61,7 @@ graph TD
 
 | 구분 | 내용 |
 |------|------|
-| Base Model | `openai/whisper-small`, `openai/whisper-large-v3` 등 |
+| Base Model | 기본값 `openai/whisper-large-v3` |
 | Fine-tuning | LoRA (PEFT) + optional 8-bit quantization |
 | 추론 변환 | CTranslate2 (Faster-Whisper) |
 | 패키지 관리 | `uv` (Astral) |
@@ -132,19 +134,19 @@ uv sync --no-build-isolation
 ### 환경 확인
 
 ```bash
-python check.py
+uv run python check.py
 ```
 
 ## runner_cli.py — 통합 CLI 진입점
 
 `dalus_server`가 이 저장소를 제어하는 표준 인터페이스입니다.
-모든 작업은 `python runner_cli.py <subcommand> [options]` 형식으로 실행합니다.
+모든 작업은 `uv run python runner_cli.py <subcommand> [options]` 형식으로 실행합니다.
 
 ### 호출 규약
 
 - 성공 시 exit code `0`, stdout에 결과 JSON 출력
 - 실패 시 exit code `!= 0`, stderr에 에러 메시지 + 산출물 디렉토리에 상태 JSON 기록
-- 장기 작업(train, eval)은 `run_status.json`을 기록하여 상태 조회 가능
+- 장기 작업은 상태 JSON을 기록합니다. 학습은 `run_status.json`, 평가는 `eval_status.json`을 사용합니다.
 
 ### 서브커맨드 목록
 
@@ -160,7 +162,7 @@ python check.py
 ### manifest
 
 ```bash
-python runner_cli.py manifest \
+uv run python runner_cli.py manifest \
   --root ./datasets/Sample \
   --wav-dir wav \
   --label-dir lb \
@@ -184,8 +186,8 @@ python runner_cli.py manifest \
 ### train
 
 ```bash
-python runner_cli.py train \
-  --model-name openai/whisper-small \
+uv run python runner_cli.py train \
+  --model-name openai/whisper-large-v3 \
   --manifest datasets/Sample/manifest.jsonl \
   --output-dir outputs/small_lora \
   --batch-size 16 --grad-accum 2 --max-steps 300 \
@@ -194,7 +196,7 @@ python runner_cli.py train \
 
 | 옵션 | 기본값 | 설명 |
 |------|--------|------|
-| `--model-name` | `openai/whisper-small` | Hugging Face 모델 ID |
+| `--model-name` | `openai/whisper-large-v3` | Hugging Face 모델 ID |
 | `--manifest` | (필수) | 학습 manifest 경로 |
 | `--output-dir` | (필수) | 산출물 디렉토리 |
 | `--language` | `ko` | 언어 코드 |
@@ -219,7 +221,7 @@ python runner_cli.py train \
 멀티 GPU 학습은 `torchrun`으로 개별 스크립트를 직접 호출합니다:
 
 ```bash
-torchrun --nproc_per_node=2 train_whisper_lora.py \
+uv run torchrun --nproc_per_node=2 train_whisper_lora.py \
   --model_name openai/whisper-large-v3 \
   --manifest /path/to/Training/manifest.jsonl \
   --eval_manifest /path/to/Validation/manifest.jsonl \
@@ -232,9 +234,9 @@ torchrun --nproc_per_node=2 train_whisper_lora.py \
 ### eval
 
 ```bash
-python runner_cli.py eval \
+uv run python runner_cli.py eval \
   --manifest datasets/Sample/manifest.jsonl \
-  --base-model openai/whisper-small \
+  --base-model openai/whisper-large-v3 \
   --lora-dir outputs/small_lora \
   --output-csv outputs/eval_results.csv \
   --max-samples 200
@@ -243,7 +245,7 @@ python runner_cli.py eval \
 | 옵션 | 기본값 | 설명 |
 |------|--------|------|
 | `--manifest` | (필수) | 평가 manifest 경로 |
-| `--base-model` | `openai/whisper-small` | 베이스 모델 |
+| `--base-model` | `openai/whisper-large-v3` | 베이스 모델 |
 | `--lora-dir` | (필수) | adapter 또는 checkpoint 경로 |
 | `--output-csv` | (필수) | 결과 CSV 저장 경로 |
 | `--language` | `ko` | 언어 코드 |
@@ -254,9 +256,9 @@ python runner_cli.py eval \
 ### infer
 
 ```bash
-python runner_cli.py infer \
+uv run python runner_cli.py infer \
   --wav /path/to/audio.wav \
-  --base-model openai/whisper-small \
+  --base-model openai/whisper-large-v3 \
   --lora-dir outputs/small_lora \
   --compare-base \
   --result-json /tmp/result.json
@@ -265,7 +267,7 @@ python runner_cli.py infer \
 | 옵션 | 기본값 | 설명 |
 |------|--------|------|
 | `--wav` | (필수) | 입력 오디오 파일 |
-| `--base-model` | `openai/whisper-small` | 베이스 모델 |
+| `--base-model` | `openai/whisper-large-v3` | 베이스 모델 |
 | `--lora-dir` | (필수) | adapter 경로 |
 | `--language` | `ko` | 언어 코드 |
 | `--compare-base` | off | base 결과도 함께 출력 |
@@ -274,8 +276,8 @@ python runner_cli.py infer \
 ### merge
 
 ```bash
-python runner_cli.py merge \
-  --base-model openai/whisper-small \
+uv run python runner_cli.py merge \
+  --base-model openai/whisper-large-v3 \
   --lora-dir outputs/small_lora \
   --merged-dir outputs/merged_small
 ```
@@ -283,7 +285,7 @@ python runner_cli.py merge \
 ### ct2-export
 
 ```bash
-python runner_cli.py ct2-export \
+uv run python runner_cli.py ct2-export \
   --model-dir outputs/merged_small \
   --output-dir outputs/ct2_small \
   --quantization int8_float16
@@ -353,6 +355,10 @@ graph TD
 | `eval_summary.json` | 평가 결과 요약 (CER, 샘플 수) |
 | `eval_status.json` | 평가 진행 상태 |
 | `*.csv` | 샘플별 비교 결과 |
+
+참고:
+- 현재 소스 기준으로 장기 실행 상태 파일은 학습은 `run_status.json`, 평가는 `eval_status.json`입니다.
+- `infer`는 `--result-json`을 넘겼을 때만 JSON 파일을 추가로 기록합니다.
 
 ### 병합/변환 산출물
 

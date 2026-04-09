@@ -35,15 +35,15 @@
 ## Entrypoints
 
 - Environment setup: `sh setup.sh`
-- Environment check: `python check.py`
-- Manifest build: `python make_manifest.py --root ./datasets/Sample --wav_dir wav --label_dir lb`
-- Unified CLI: `python runner_cli.py <subcommand> [args]` (manifest, train, eval, infer, merge, ct2-export)
-- Single-GPU training: `python train_whisper_lora.py --model_name openai/whisper-large-v3 --manifest datasets/Sample/manifest.jsonl --output_dir outputs/large-v3_lora`
-- Multi-GPU training: `torchrun --nproc_per_node=2 train_whisper_lora.py ...`
-- LoRA evaluation: `python eval_dataset_lora.py --manifest ... --base_model ... --lora_dir ...`
-- Single-file inference: `python infer_lora.py --wav <path> --base_model ... --lora_dir ...`
-- LoRA merge: `python merge_peft.py`
-- CT2 evaluation: `python eval_dataset_ct2.py --manifest ... --ct2_dir ...`
+- Environment check: `uv run python check.py`
+- Manifest build: `uv run python make_manifest.py --root ./datasets/Sample --wav_dir wav --label_dir lb`
+- Unified CLI: `uv run python runner_cli.py <subcommand> [args]` (manifest, train, eval, infer, merge, ct2-export)
+- Single-GPU training: `uv run python train_whisper_lora.py --model_name openai/whisper-large-v3 --manifest datasets/Sample/manifest.jsonl --output_dir outputs/large-v3_lora`
+- Multi-GPU training: `uv run torchrun --nproc_per_node=2 train_whisper_lora.py ...`
+- LoRA evaluation: `uv run python eval_dataset_lora.py --manifest ... --base_model ... --lora_dir ...`
+- Single-file inference: `uv run python infer_lora.py --wav <path> --base_model ... --lora_dir ...`
+- LoRA merge: `uv run python merge_peft.py`
+- CT2 evaluation: `uv run python eval_dataset_ct2.py --manifest ... --ct2_dir ...`
 
 ## Tests
 
@@ -60,6 +60,8 @@
 - `train_whisper_lora.py` collator는 `datasets`의 legacy dict payload와 newer `torchcodec` `AudioDecoder` payload를 둘 다 처리한다.
 - `train_whisper_lora.py` supports either a dedicated `--eval_manifest` or an automatic train/eval split via `--eval_ratio`.
 - 기본 모델이 `openai/whisper-large-v3`로 변경됨 (2026-04-03). 모든 스크립트 CLI 기본값 일괄 변경.
+- `runner_cli.py` 기준으로 `infer`는 `--result-json` 옵션이 있을 때만 JSON 파일을 별도 저장한다.
+- `runner_cli.py` 기준으로 상태 파일 이름은 학습 `run_status.json`, 평가 `eval_status.json`으로 서로 다르다.
 - Most scripts assume Korean transcription defaults: `language=ko`, `task=transcribe`, and 16 kHz audio input.
 - Several operational examples in `README.md` use machine-specific absolute paths; scripts should be preferred over copied paths.
 - `datasets/*` and `outputs/` are git-ignored, so repository state alone is not enough to reconstruct experiments.
