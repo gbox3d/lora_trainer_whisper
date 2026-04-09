@@ -29,6 +29,7 @@ def parse_args(argv=None):
     train.add_argument("--output-dir", required=True)
     train.add_argument("--language", default="ko")
     train.add_argument("--task", default="transcribe")
+    train.add_argument("--num-epochs", type=int, default=0)
     train.add_argument("--max-steps", type=int, default=300)
     train.add_argument("--batch-size", type=int, default=2)
     train.add_argument("--grad-accum", type=int, default=16)
@@ -155,6 +156,9 @@ def handle_train(args: argparse.Namespace) -> dict[str, Any]:
 
     snapshot = command_snapshot(args)
     write_json(config_path, snapshot)
+    # Clear stale summary from previous runs so the UI doesn't show outdated info
+    if summary_path.exists():
+        summary_path.unlink()
     base_status = build_train_status(
         output_dir,
         "running",
@@ -178,6 +182,8 @@ def handle_train(args: argparse.Namespace) -> dict[str, Any]:
             args.language,
             "--task",
             args.task,
+            "--num_epochs",
+            str(args.num_epochs),
             "--max_steps",
             str(args.max_steps),
             "--batch_size",

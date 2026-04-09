@@ -32,6 +32,8 @@ def parse_args(argv=None):
     p.add_argument("--language", type=str, default="ko")
     p.add_argument("--task", type=str, default="transcribe")
 
+    p.add_argument("--num_epochs", type=int, default=0,
+                   help="에폭 수 (0이면 max_steps 기반 학습)")
     p.add_argument("--max_steps", type=int, default=300)
     p.add_argument("--batch_size", type=int, default=2)
     p.add_argument("--grad_accum", type=int, default=16)
@@ -170,6 +172,7 @@ def _load_and_cast_manifest(path: str):
             "audio": [resolve_audio_path(audio_path, manifest_path) for audio_path in batch["audio"]],
         },
         batched=True,
+        load_from_cache_file=False,
         desc="Resolving manifest audio paths",
     )
     return ds.cast_column("audio", Audio(sampling_rate=16000))
@@ -243,13 +246,16 @@ def main(argv=None):
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
 
+    use_epochs = args.num_epochs > 0
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        max_steps=args.max_steps,
+        **( {"num_train_epochs": args.num_epochs, "max_steps": -1}
+            if use_epochs
+            else {"max_steps": args.max_steps} ),
         fp16=bool(args.fp16),
         ddp_find_unused_parameters=False,
 

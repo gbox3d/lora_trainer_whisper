@@ -21,11 +21,35 @@ def resolve_audio_path(audio_path: Any, manifest_path: str | Path) -> Any:
         return audio_path
 
     candidate = Path(audio_path).expanduser()
-    if candidate.is_absolute():
+
+    # Truly relative path: resolve against manifest directory
+    if not candidate.is_absolute():
+        manifest_dir = resolve_manifest_path(manifest_path).parent
+        return str((manifest_dir / candidate).resolve())
+
+    # Absolute path that actually exists on disk: use as-is
+    if candidate.exists():
         return str(candidate)
 
-    manifest_dir = resolve_manifest_path(manifest_path).parent
-    return str((manifest_dir / candidate).resolve())
+    # Pseudo-absolute path (e.g. "/Training/wav/foo.wav") that doesn't exist.
+    # Check if the first path segment matches a directory relative to
+    # the manifest's parent hierarchy, and recover the real path.
+    manifest_resolved = resolve_manifest_path(manifest_path)
+    parts = candidate.parts[1:]  # strip leading "/"
+    if parts:
+        # Walk up from manifest dir looking for a parent that contains the
+        # first segment as a child directory.
+        for ancestor in [manifest_resolved.parent, *manifest_resolved.parent.parents]:
+            rebuilt = ancestor / Path(*parts)
+            if rebuilt.exists():
+                return str(rebuilt)
+            # Stop at filesystem root to avoid pointless traversal
+            if ancestor == ancestor.parent:
+                break
+
+    # Nothing matched; return original (will likely fail downstream with
+    # a clear "file not found" message)
+    return str(candidate)
 
 
 def read_manifest_records(path: str | Path) -> list[dict[str, Any]]:
