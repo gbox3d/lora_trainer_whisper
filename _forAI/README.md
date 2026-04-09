@@ -9,13 +9,15 @@ This directory stores AI-facing project notes for `lora_trainer_whisper`, a Whis
 1. `README.md`
 2. `inventory.md`
 3. `memo.md`
-4. `dev_log.md`
-5. `plan.md`
+4. `data_prep.md`
+5. `dev_log.md`
+6. `plan.md`
 
 ## File roles
 
 - `inventory.md`: list what actually exists in the repository
 - `memo.md`: keep short notes, open questions, and decision criteria
+- `data_prep.md`: 데이터셋별 원본 구조·정리 상태·manifest 생성 요령 (AI 장기 메모리)
 - `dev_log.md`: log `_forAI` maintenance and AI-assisted changes
 - `plan.md`: capture remaining work and next project steps
 
