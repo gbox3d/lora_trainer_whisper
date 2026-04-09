@@ -1,13 +1,29 @@
 # Whisper LoRA Trainer
 
 Whisper 모델의 **LoRA 파인튜닝, 평가, 추론, 모델 병합, CT2 변환**을 수행하는 학습 엔진입니다.
-`dalus_server` WebUI가 이 저장소의 `runner_cli.py`를 CLI 프로세스로 호출하여 모든 워크플로우를 제어합니다.
+`dalus_server` WebUI가 이 저장소의 `runner_cli.py`를 CLI 프로세스로 호출합니다.
+모든 예시는 `uv run ...` 기준입니다.
 
-이 저장소는 `uv` 기반으로 운영합니다. 문서의 모든 예시는 기본적으로 `uv run ...` 기준입니다.
+**버전**: `0.2.2`
 
-## 현재 버전
+## 목차
 
-- `0.1.0`
+- [아키텍처](#아키텍처)
+- [기술 스택](#기술-스택)
+- [프로젝트 구조](#프로젝트-구조)
+- [설치](#설치)
+- [원천 데이터 준비](#원천-데이터-준비)
+- [dataset_tools — 데이터셋 준비](#dataset_tools--데이터셋-준비)
+- [runner_cli.py — 통합 CLI](#runner_clipy--통합-cli)
+  - [manifest](#manifest)
+  - [validate](#validate)
+  - [train](#train)
+  - [eval](#eval)
+  - [infer](#infer)
+  - [merge](#merge)
+  - [ct2-export](#ct2-export)
+- [산출물 규약](#산출물-규약)
+- [dalus_server 연동](#dalus_server-연동)
 
 ## 아키텍처
 
@@ -19,19 +35,26 @@ graph LR
     end
 
     subgraph lora_trainer_whisper
-        CLI[runner_cli.py]
+        CLI[runner_cli.py<br/>루트 래퍼]
         CLI --> manifest[manifest]
         CLI --> train[train]
         CLI --> eval[eval]
         CLI --> infer[infer]
         CLI --> merge[merge]
         CLI --> ct2[ct2-export]
+        CLI --> validate[validate]
 
-        train --> train_py[train_whisper_lora.py]
-        eval --> eval_py[eval_dataset_lora.py]
-        infer --> infer_py[infer_lora.py]
-        merge --> merge_py[merge_peft.py]
-        manifest --> manifest_py[make_manifest.py]
+        subgraph "src/lora_trainer/"
+            train --> train_py[train_whisper_lora.py]
+            eval --> eval_py[eval_dataset_lora.py]
+            infer --> infer_py[infer_lora.py]
+            merge --> merge_py[merge_peft.py]
+        end
+
+        subgraph "src/dataset_tools/"
+            manifest --> manifest_py[make_manifest.py]
+            validate --> validate_py[validate_dataset.py]
+        end
     end
 
     Node -- "spawn (CLI)" --> CLI
@@ -72,24 +95,37 @@ graph TD
 
 ```
 lora_trainer_whisper/
-├── runner_cli.py              # dalus_server가 호출하는 통합 CLI 진입점
-├── workflow_utils.py          # JSON 기록, 타임스탬프, checkpoint 유틸리티
+├── runner_cli.py              # dalus_server 호환 래퍼 → src/lora_trainer/runner_cli.py
+├── train_whisper_lora.py      # 래퍼 → src/lora_trainer/train_whisper_lora.py
+├── make_manifest.py           # 래퍼 → src/dataset_tools/make_manifest.py
+│   (기타 루트 스크립트도 같은 방식으로 src/ 위임)
 │
-├── train_whisper_lora.py      # LoRA 학습 본체
-├── eval_dataset_lora.py       # manifest 기반 Base vs LoRA 비교 평가
-├── infer_lora.py              # 단일 wav 추론
-├── make_manifest.py           # 데이터셋 manifest.jsonl 생성
-├── merge_peft.py              # LoRA adapter → base model 병합
-├── test_run_ct2.py            # CT2 변환 모델 스모크 테스트
-├── eval_dataset_ct2.py        # PyTorch vs CT2 비교 평가
-├── compare_infer.py           # Base vs LoRA 추론 비교 (개발용)
-├── check.py                   # 환경/CUDA/torchcodec 검증
+├── src/
+│   ├── dataset_tools/         # 경량 패키지 (ML 의존 없음)
+│   │   ├── manifest_utils.py  # 경로 해석 유틸 (relative/absolute 변환)
+│   │   ├── make_manifest.py   # manifest.jsonl 생성
+│   │   ├── validate_dataset.py# manifest 유효성 검사 + WAV 헤더 검사 + clean
+│   │   └── cli.py             # `whisper-dataset` 콘솔 엔트리포인트
+│   │
+│   └── lora_trainer/          # ML 패키지 (torch, transformers, peft 등)
+│       ├── runner_cli.py      # 통합 CLI 본체
+│       ├── workflow_utils.py  # JSON 기록, 타임스탬프, checkpoint 유틸리티
+│       ├── train_whisper_lora.py
+│       ├── eval_dataset_lora.py
+│       ├── infer_lora.py
+│       ├── merge_peft.py
+│       ├── eval_dataset_ct2.py
+│       ├── compare_infer.py
+│       ├── test_run_ct2.py
+│       └── check.py
 │
 ├── setup.sh                   # uv 기반 환경 부트스트랩
-├── pyproject.toml             # 의존성 및 PyTorch CUDA 인덱스 설정
+├── pyproject.toml             # 의존성, hatchling 빌드, console_scripts
 ├── datasets/                  # 입력 데이터셋 + manifest (git-ignored)
 └── outputs/                   # 학습 산출물, 체크포인트 (git-ignored)
 ```
+
+> **루트 스크립트**: dalus_server가 `uv run python runner_cli.py <cmd>` 형식으로 호출하는 계약을 유지하기 위해 루트에 얇은 래퍼를 남겨둡니다. 실제 로직은 `src/` 패키지 안에 있습니다.
 
 ## 설치
 
@@ -137,7 +173,66 @@ uv sync --no-build-isolation
 uv run python check.py
 ```
 
-## runner_cli.py — 통합 CLI 진입점
+## 원천 데이터 준비
+
+학습에 사용할 데이터는 아래 구조로 정리되어 있어야 합니다.
+
+### 필수 디렉토리 구조
+
+```
+<dataset_root>/
+├── wav/                  # 오디오 파일
+│   └── <화자ID>/
+│       └── <세션ID>/
+│           └── *.wav
+└── lb/                   # 라벨 JSON
+    └── <화자ID>/
+        └── <세션ID>/
+            └── *.json    # wav와 동일한 파일명 (확장자만 다름)
+```
+
+wav와 lb는 **파일명이 1:1 대응**되어야 합니다. (`SPK003KBSEC032F001.wav` ↔ `SPK003KBSEC032F001.json`)
+
+### 라벨 JSON 형식
+
+`make_manifest.py`는 JSON 안의 `script.text` 필드를 전사 텍스트로 사용합니다.
+
+```json
+{
+  "script": {
+    "text": "여기에 전사 텍스트가 들어갑니다."
+  }
+}
+```
+
+다른 형식의 JSON이라면 `src/dataset_tools/make_manifest.py`의 `build_manifest_row()` 함수에서 필드 경로를 수정해야 합니다.
+
+
+## dataset_tools — 데이터셋 준비
+
+`src/dataset_tools/` 패키지는 ML 의존 없이 독립 실행 가능한 데이터 준비 도구입니다.
+
+### 콘솔 엔트리포인트
+
+```bash
+uv run whisper-dataset manifest --root ./datasets/Sample --wav-dir wav --label-dir lb
+uv run whisper-dataset validate ./datasets/Sample --check-audio
+```
+
+### 모듈 구성
+
+| 모듈 | 역할 |
+|------|------|
+| `manifest_utils.py` | relative/absolute 경로 변환, manifest 레코드 읽기 |
+| `make_manifest.py` | wav + label JSON → `manifest.jsonl` 생성 |
+| `validate_dataset.py` | manifest 유효성 검사, WAV 헤더 검사, 불량 행 제거 |
+| `cli.py` | `whisper-dataset` 엔트리포인트 (manifest / validate) |
+
+`runner_cli.py`의 `manifest`, `validate` 서브커맨드도 이 패키지를 내부적으로 호출합니다.
+
+---
+
+## runner_cli.py — 통합 CLI
 
 `dalus_server`가 이 저장소를 제어하는 표준 인터페이스입니다.
 모든 작업은 `uv run python runner_cli.py <subcommand> [options]` 형식으로 실행합니다.
@@ -153,6 +248,7 @@ uv run python check.py
 | 서브커맨드 | 설명 | 장기 실행 |
 |-----------|------|----------|
 | `manifest` | 데이터셋 manifest.jsonl 생성 | No |
+| `validate` | manifest 유효성 검사 (오디오 존재, WAV 헤더, 불량 행 제거) | No |
 | `train` | LoRA 학습 시작 | Yes |
 | `eval` | Base vs LoRA 비교 평가 | Yes |
 | `infer` | 단일 wav 추론 | No |
@@ -182,6 +278,26 @@ uv run python runner_cli.py manifest \
 
 - 기본값인 `relative`를 권장합니다. symlink, 외장 디스크, 마운트 위치가 바뀌어도 manifest를 다시 덜 만들게 됩니다.
 - train/eval 스크립트는 relative/absolute 두 형식을 모두 읽을 수 있도록 처리합니다.
+
+### validate
+
+```bash
+uv run python runner_cli.py validate ./datasets/Sample
+uv run python runner_cli.py validate ./datasets/Sample --check-audio
+uv run python runner_cli.py validate ./datasets/Sample --check-audio --clean
+```
+
+| 옵션 | 기본값 | 설명 |
+|------|--------|------|
+| `root` | (필수) | 데이터셋 루트 경로 (manifest.jsonl 상위) |
+| `--manifest` | 자동 탐색 | 검사할 manifest.jsonl 경로 |
+| `--check-audio` | off | WAV 헤더 읽기 (sample rate, duration 포함) |
+| `--clean` | off | 누락/오류 행을 제거한 manifest로 덮어쓰기 |
+| `--max-errors` | `20` | 출력할 최대 오류 수 |
+| `--no-progress` | off | 진행 막대 비활성화 |
+
+- `--clean`을 사용하면 자동으로 `--check-audio`도 활성화됩니다.
+- root 아래에 여러 `manifest.jsonl`이 있으면 모두 검사하고 전체 요약을 출력합니다.
 
 ### train
 

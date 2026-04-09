@@ -3,7 +3,7 @@
 ## Version management
 
 - Use `major.minor.patch` versioning.
-- Current project version in `pyproject.toml` is `0.1.0`.
+- Current project version in `pyproject.toml` is `0.2.2`.
 - Increase `major` for large structural changes or compatibility-breaking changes.
 - Increase `minor` for new features or meaningful improvements.
 - Increase `patch` for bug fixes or small changes.
@@ -28,6 +28,7 @@
 - `manifest_utils.resolve_audio_path()`는 이제 manifest-relative 경로뿐 아니라, 실제로는 존재하지 않는 pseudo-absolute 경로도 manifest 상위 디렉터리를 기준으로 복구 시도한다.
 - `runner_cli.py train` and `train_whisper_lora.py` now support `--num-epochs`; `0` means keep the existing `max_steps`-driven behavior.
 - `runner_cli.py`는 train 시작 전에 기존 `train_summary.json`을 지워서 UI가 이전 run 요약을 잘못 보여주지 않게 한다.
+- `runner_cli.py`는 `train.log` 시작부에 실제 사용한 training parameters JSON 블록을 기록하고, 진행바 carriage return 출력을 사람이 읽기 쉬운 줄바꿈으로 정규화한다.
 - `train_whisper_lora.py` manifest audio path remap은 `load_from_cache_file=False`로 강제 재계산한다.
 - `make_manifest.py` now defaults to relative `audio` paths and exposes `--audio-path-mode` plus `--workers` for large manifest rebuilds on slower storage.
 - `train_whisper_lora.py` can auto-split train/eval if `--eval_manifest` is not supplied.

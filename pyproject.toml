@@ -1,6 +1,6 @@
 [project]
 name = "lora-trainer-whisper"
-version = "0.1.0"
+version = "0.2.2"
 description = "Whisper LoRA Training on DGX Grace(ARM64)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,8 +11,8 @@ dependencies = [
     "pyinstaller>=6.0.0",
     "python-dotenv>=1.0.0",
     "scipy>=1.10.0",
-    "torch>=2.9.1",       # (수정) 2.9.1 버전 명시
-    "torchaudio>=2.9.1",  # (수정) 2.9.1 버전 명시
+    "torch>=2.9.1",
+    "torchaudio>=2.9.1",
     "transformers>=4.36.0",
     "faster-whisper>=1.0.0",
     "jiwer>=3.0.0",
@@ -28,7 +28,20 @@ dependencies = [
     "pandas>=2.0.0",
     "torchcodec",
     "tensorboard>=2.15.0",
+    "tqdm>=4.66.0",
+    "psutil>=5.9.0",
 ]
+
+[project.scripts]
+runner-cli = "lora_trainer.runner_cli:main"
+whisper-dataset = "dataset_tools.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dataset_tools", "src/lora_trainer"]
 
 # 1. PyTorch CUDA Index (수정: cu128 -> cu130)
 [[tool.uv.index]]

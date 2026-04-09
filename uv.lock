@@ -1251,8 +1251,8 @@ wheels = [
 
 [[package]]
 name = "lora-trainer-whisper"
-version = "0.1.0"
-source = { virtual = "." }
+version = "0.2.2"
+source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
     { name = "bitsandbytes" },
@@ -1267,6 +1267,7 @@ dependencies = [
     { name = "pandas" },
     { name = "peft" },
     { name = "pillow" },
+    { name = "psutil" },
     { name = "pydub" },
     { name = "pyinstaller" },
     { name = "python-dotenv" },
@@ -1277,6 +1278,7 @@ dependencies = [
     { name = "torchaudio", version = "2.9.1", source = { registry = "https://download.pytorch.org/whl/cu130" }, marker = "python_full_version < '3.15' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'" },
     { name = "torchaudio", version = "2.9.1+cu130", source = { registry = "https://download.pytorch.org/whl/cu130" }, marker = "python_full_version >= '3.15' or platform_machine != 'aarch64' or platform_python_implementation != 'CPython' or sys_platform != 'linux'" },
     { name = "torchcodec" },
+    { name = "tqdm" },
     { name = "transformers" },
 ]
 
@@ -1295,6 +1297,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "peft", specifier = ">=0.7.0" },
     { name = "pillow", specifier = ">=10.0.0" },
+    { name = "psutil", specifier = ">=5.9.0" },
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "pyinstaller", specifier = ">=6.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -1304,6 +1307,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.9.1", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchaudio", specifier = ">=2.9.1", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchcodec", git = "https://github.com/pytorch/torchcodec.git" },
+    { name = "tqdm", specifier = ">=4.66.0" },
     { name = "transformers", specifier = ">=4.36.0" },
 ]
 
@@ -3075,24 +3079,24 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-win_amd64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_aarch64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-win_amd64.whl" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:fd6c7d297e21758a7fa07624f2b5bb15607ee3b1dcc52519e8e796c6d4fcf960" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:f40778951ca1533dc634b3842392641fa0b641181ff2f71d62728ef33cc36a5c" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp311-cp311-win_amd64.whl", hash = "sha256:8db2814e63f2b365bda88526587ca75a6083a0b957a24b2b0d45ddc5ee350176" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:6e7f84cb10c7e7d9f862c318f056d64840544ab4f0bcbf8cf7ed6047fe04051f" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:e70e1b18881e6b3c1ce402d0a989da39f956a3a057526e03c354df23d704ce9b" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp312-cp312-win_amd64.whl", hash = "sha256:cd3232a562ad2a2699d48130255e1b24c07dfe694a40dcd24fad683c752de121" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:32b47b951a9f4e8dc7e132bc2e2f60ac6dd236c5786c07320185bc5062ce5b92" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:bdec3d5e26a472d292ec48d9d56e3feda86f3e60744cb49c92603502ba34d331" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313-win_amd64.whl", hash = "sha256:47cae56331fdec7f7082aad967b25868cc5f94b203fc273e40346a852aa009dd" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:4444e1e23b083e3dc0591e53d3a3f7ba45500a6e24071ffc8df2dc319cbd6302" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:5270e343fc4b1d21308a30656ea922a23d85f3afbf12abd2481672fa94953fd6" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp313-cp313t-win_amd64.whl", hash = "sha256:c0bb31481c3f505cb5baa630f2b975f07f77be557bbafe5cfc695ac911ea325c" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:3951834ec2f6daf67e33c940a341dcde7173629202b7e72f247f42621ce088bc" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:59a98c01784f7b795ac3532513199ac54e3464ccc0f1dda44c940cc0afb426f8" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314-win_amd64.whl", hash = "sha256:a80fe3b0467b6986741f28e88fcff0054a6a806616946f28f5f601bd95632ba0" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_aarch64.whl", hash = "sha256:a7b6c5c619d0ecf0613668d54aaea4d9fea0ef72bcd325b13e1ea64a43bf6775" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:f760a8ae4a6cff10f29db09e4ab372e4b8d1f704daf07b4ac39f6f590decc05c" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torch-2.9.1%2Bcu130-cp314-cp314t-win_amd64.whl", hash = "sha256:59c74f9d2b49778b146f23bcfebc35f051d64f10ff0dbdfd22387a7bd1d9ed71" },
 ]
 
 [[package]]
@@ -3108,12 +3112,12 @@ dependencies = [
     { name = "torch", marker = "python_full_version < '3.15' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:493421d061375074ce84840ca619605f625892e16dead63ec97181ef02da3357" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:b3c75f87e325946276c952864dbce2c8fabc88a00d86730c3d5bc0999ebf7789" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5ef7cafc15785a0a737b325a10d0817d9490d8d58402abd20e404993c20ef32e" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:df94e4e0f67216891e24ef552006afb4f863c901361a0ee901c2c41c3d315545" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:fdfc6d85ada252c74841af65dc52caea9b12ef6c2487da3dba9068e116afb0e0" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1-cp314-cp314t-manylinux_2_28_aarch64.whl", hash = "sha256:5dafd218713e88a91c02dcd943a71e0e48801740348fc55cb29bbb16d75d84d8" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:493421d061375074ce84840ca619605f625892e16dead63ec97181ef02da3357" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:b3c75f87e325946276c952864dbce2c8fabc88a00d86730c3d5bc0999ebf7789" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5ef7cafc15785a0a737b325a10d0817d9490d8d58402abd20e404993c20ef32e" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:df94e4e0f67216891e24ef552006afb4f863c901361a0ee901c2c41c3d315545" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:fdfc6d85ada252c74841af65dc52caea9b12ef6c2487da3dba9068e116afb0e0" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1-cp314-cp314t-manylinux_2_28_aarch64.whl", hash = "sha256:5dafd218713e88a91c02dcd943a71e0e48801740348fc55cb29bbb16d75d84d8" },
 ]
 
 [[package]]
@@ -3129,18 +3133,18 @@ dependencies = [
     { name = "torch", marker = "python_full_version >= '3.15' or platform_machine != 'aarch64' or platform_python_implementation != 'CPython' or sys_platform != 'linux'" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:1023bb6598fa6312e1990fdc78660f4b4ef128d8942a1f10c5827aea23d6bd7e" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp311-cp311-win_amd64.whl", hash = "sha256:817e2660d35a3c9a2638dd80d63c7a488cbbe87446ddbb564a5cf88b9de632f7" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:a6c58d5e846da5a90d50bd425e2c24368747cd04297d95c6dd51d3f7f85fea26" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp312-cp312-win_amd64.whl", hash = "sha256:7533a17bed21e5b86b8c49fd79656779779f2c991aef2804af6f318d2022ea6a" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:59b414fa77f8908c2e8e13866169a0374b554085f1a56b99ff511a28c322be1a" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313-win_amd64.whl", hash = "sha256:2e90a149a17a41676f5a2e4e95c3a46baf3a9389af205894c23b056c8ad06daf" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:a73b4556bec98b1883485c9f7d00bd6b2397dac4ad4a2c839453006058020f1e" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313t-win_amd64.whl", hash = "sha256:e2ab09a0f7c9cd2a5eaa87d84e04bd24852655d741e8cacd6c8bd80e1dc453b9" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:476b1d25444af333172f892007d18fef473e8f57f030363361ac095b43e80daf" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314-win_amd64.whl", hash = "sha256:402819af20f3a84b82e94e0b810fd394d0ad56147d46cd642ffb968ce85b9f5e" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:ac6a7a71e0284aaf78d391d6a45c1fafe65aef6d2300e3af20145ba4a0c9191c" },
-    { url = "https://download.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314t-win_amd64.whl", hash = "sha256:e6bab62f79b51b9c02516b60bc884155239bef1515d08e29df741a7896422ff8" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:1023bb6598fa6312e1990fdc78660f4b4ef128d8942a1f10c5827aea23d6bd7e" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp311-cp311-win_amd64.whl", hash = "sha256:817e2660d35a3c9a2638dd80d63c7a488cbbe87446ddbb564a5cf88b9de632f7" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:a6c58d5e846da5a90d50bd425e2c24368747cd04297d95c6dd51d3f7f85fea26" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp312-cp312-win_amd64.whl", hash = "sha256:7533a17bed21e5b86b8c49fd79656779779f2c991aef2804af6f318d2022ea6a" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:59b414fa77f8908c2e8e13866169a0374b554085f1a56b99ff511a28c322be1a" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313-win_amd64.whl", hash = "sha256:2e90a149a17a41676f5a2e4e95c3a46baf3a9389af205894c23b056c8ad06daf" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:a73b4556bec98b1883485c9f7d00bd6b2397dac4ad4a2c839453006058020f1e" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp313-cp313t-win_amd64.whl", hash = "sha256:e2ab09a0f7c9cd2a5eaa87d84e04bd24852655d741e8cacd6c8bd80e1dc453b9" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:476b1d25444af333172f892007d18fef473e8f57f030363361ac095b43e80daf" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314-win_amd64.whl", hash = "sha256:402819af20f3a84b82e94e0b810fd394d0ad56147d46cd642ffb968ce85b9f5e" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:ac6a7a71e0284aaf78d391d6a45c1fafe65aef6d2300e3af20145ba4a0c9191c" },
+    { url = "https://download-r2.pytorch.org/whl/cu130/torchaudio-2.9.1%2Bcu130-cp314-cp314t-win_amd64.whl", hash = "sha256:e6bab62f79b51b9c02516b60bc884155239bef1515d08e29df741a7896422ff8" },
 ]
 
 [[package]]
