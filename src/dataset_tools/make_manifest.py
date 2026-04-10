@@ -40,13 +40,25 @@ def normalize_text(t: str) -> str:
     return t
 
 
+def extract_text(obj: dict) -> str | None:
+    """다양한 JSON 포맷에서 텍스트 추출."""
+    # 표준 포맷: {"script": {"text": "..."}}
+    if "script" in obj and "text" in obj.get("script", {}):
+        return obj["script"]["text"]
+    # 71627 대학강의 포맷: {"06_transcription": {"1_text": "..."}}
+    if "06_transcription" in obj and "1_text" in obj.get("06_transcription", {}):
+        return obj["06_transcription"]["1_text"]
+    return None
+
+
 def build_manifest_row(label_path: Path, lab_root: Path, wav_root: Path, out_path: Path, audio_path_mode: str):
     obj = json.loads(label_path.read_text(encoding="utf-8"))
 
-    if "script" not in obj or "text" not in obj["script"]:
+    raw_text = extract_text(obj)
+    if raw_text is None:
         return None
 
-    text = normalize_text(obj["script"]["text"])
+    text = normalize_text(raw_text)
     rel = label_path.relative_to(lab_root).with_suffix(".wav")
     wav_path = wav_root / rel
 
