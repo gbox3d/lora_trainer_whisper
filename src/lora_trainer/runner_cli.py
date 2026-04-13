@@ -105,6 +105,22 @@ def parse_args(argv=None):
     train.add_argument("--eval-manifest", default="")
     train.add_argument("--eval-steps", type=int, default=300)
     train.add_argument("--eval-ratio", type=float, default=0.01)
+    train.add_argument(
+        "--data-pipeline",
+        choices=("legacy", "cached"),
+        default="legacy",
+        help="데이터 파이프라인 모드 (legacy: datasets.Audio, cached: 디스크 캐시)",
+    )
+    train.add_argument(
+        "--feature-cache-dir",
+        default="",
+        help="cached 모드의 feature 캐시 디렉터리 (기본: <manifest_dir>/.lora_trainer_cache)",
+    )
+    train.add_argument(
+        "--resume-from-checkpoint",
+        default="",
+        help="체크포인트 경로에서 학습 재개 (빈 문자열이면 새로 시작)",
+    )
 
     eval_cmd = sub.add_parser("eval")
     eval_cmd.add_argument("--manifest", required=True)
@@ -188,6 +204,8 @@ def training_log_snapshot(namespace: argparse.Namespace) -> dict[str, Any]:
         "target_modules": namespace.target_modules,
         "eval_steps": namespace.eval_steps,
         "load_in_8bit": namespace.load_in_8bit,
+        "data_pipeline": namespace.data_pipeline,
+        "feature_cache_dir": namespace.feature_cache_dir,
     }
 
 
@@ -295,6 +313,9 @@ def handle_train(args: argparse.Namespace) -> dict[str, Any]:
             *(["--use_gradient_checkpointing"] if args.use_gradient_checkpointing else []),
             *(["--pin_memory"] if args.pin_memory else []),
             *(["--load_in_8bit"] if args.load_in_8bit else []),
+            "--data_pipeline", args.data_pipeline,
+            *(["--feature_cache_dir", args.feature_cache_dir] if args.feature_cache_dir else []),
+            *(["--resume_from_checkpoint", args.resume_from_checkpoint] if args.resume_from_checkpoint else []),
         ])
 
     final_status = build_train_status(

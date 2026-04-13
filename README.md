@@ -4,7 +4,7 @@ Whisper 모델의 **LoRA 파인튜닝, 평가, 추론, 모델 병합, CT2 변환
 `dalus_server` WebUI가 이 저장소의 `runner_cli.py`를 CLI 프로세스로 호출합니다.
 모든 예시는 `uv run ...` 기준입니다.
 
-**버전**: `0.2.2`
+**버전**: `0.3.1`
 
 ## 목차
 
@@ -325,6 +325,10 @@ uv run python runner_cli.py train \
 | `--fp16` | off | FP16 혼합 정밀도 |
 | `--max-audio-sec` | `20.0` | 최대 오디오 길이(초) |
 | `--use-gradient-checkpointing` | off | 메모리 절약용 |
+| `--dataloader-workers` | `0` | DataLoader worker 수 |
+| `--pin-memory` | off | DataLoader pin_memory 사용 |
+| `--data-pipeline` | `legacy` | `legacy`(기존 `datasets.Audio`) 또는 `cached`(실험적 디스크 캐시 파이프라인) |
+| `--feature-cache-dir` | 빈 문자열 | `cached` 모드 feature 캐시 루트. 비우면 `<manifest_dir>/.lora_trainer_cache` |
 | `--lora-r` | `8` | LoRA rank |
 | `--lora-alpha` | `16` | LoRA alpha |
 | `--lora-dropout` | `0.05` | LoRA dropout |
@@ -333,6 +337,17 @@ uv run python runner_cli.py train \
 | `--eval-steps` | `300` | eval 주기(스텝) |
 | `--eval-ratio` | `0.01` | eval-manifest 없을 때 자동 분할 비율 |
 | `--load-in-8bit` | off | 8-bit 양자화 로딩 |
+
+#### 실전 설정 가이드
+
+- 유효 배치 크기 = `batch-size × grad-accum` 입니다.
+- VRAM이 부족하면 `batch-size`를 줄이고 `grad-accum`을 늘려 같은 유효 배치를 유지할 수 있습니다. 예: `batch=32, accum=1` 과 `batch=4, accum=8` 은 둘 다 유효 배치 `32` 입니다.
+- `--fp16`은 CUDA GPU에서 보통 켜두는 편이 유리합니다. VRAM 사용량을 줄이고 속도도 좋아지는 경우가 많습니다.
+- `--use-gradient-checkpointing`은 VRAM을 아끼는 대신 속도는 느려질 수 있습니다. OOM이 나거나 메모리가 빠듯할 때 켜고, 여유가 충분하면 꺼서 속도를 보는 식으로 조정하는 것이 좋습니다.
+- `--lora-r`와 `--lora-alpha`는 같이 보는 것이 좋습니다. 보통 `alpha`를 `r`의 2배 정도로 맞추는 경우가 많습니다. 예: `r=8`, `alpha=16`.
+- 멀티워커를 쓰려면 `--data-pipeline cached`를 먼저 고려하는 것이 좋습니다. 첫 실행은 feature cache를 만드는 동안 느릴 수 있지만, 이후 재실행은 더 유리할 수 있습니다.
+- 가장 보수적인 시작점은 `legacy + workers=0`이고, 멀티워커 시작점은 검증된 `cached` 프로필을 쓰는 쪽이 안전합니다.
+- 사용자 실사용 기준 설명은 이 README에 유지하고, 머신/런타임 의존적인 디버깅 메모와 benchmark 관측값은 [`_forAI/memo.md`](./_forAI/memo.md)에 정리합니다.
 
 멀티 GPU 학습은 `torchrun`으로 개별 스크립트를 직접 호출합니다:
 

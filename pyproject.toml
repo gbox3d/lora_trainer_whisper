@@ -1,6 +1,6 @@
 [project]
 name = "lora-trainer-whisper"
-version = "0.2.2"
+version = "0.3.1"
 description = "Whisper LoRA Training on DGX Grace(ARM64)"
 readme = "README.md"
 requires-python = ">=3.11"

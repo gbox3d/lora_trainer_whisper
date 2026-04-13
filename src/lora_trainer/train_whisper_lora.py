@@ -4,8 +4,9 @@ import argparse
 import inspect
 import time
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -21,6 +22,8 @@ from transformers import (
     set_seed,
 )
 from peft import LoraConfig, get_peft_model, TaskType
+from transformers.trainer_utils import seed_worker
+from transformers.utils import is_datasets_available
 
 from dataset_tools.manifest_utils import resolve_audio_path, resolve_manifest_path
 from lora_trainer.workflow_utils import checkpoint_names
@@ -50,6 +53,19 @@ def parse_args(argv=None):
     p.add_argument("--dataloader_workers", type=int, default=0)
     p.add_argument("--pin_memory", action="store_true")
 
+    p.add_argument(
+        "--data_pipeline",
+        choices=("legacy", "cached"),
+        default="legacy",
+        help="데이터 파이프라인 모드 (legacy: datasets.Audio 경로, cached: 디스크 캐시 경로)",
+    )
+    p.add_argument(
+        "--feature_cache_dir",
+        type=str,
+        default="",
+        help="cached 모드의 feature 캐시 디렉터리 (기본: <manifest_dir>/.lora_trainer_cache)",
+    )
+
     p.add_argument("--lora_r", type=int, default=8)
     p.add_argument("--lora_alpha", type=int, default=16)
     p.add_argument("--lora_dropout", type=float, default=0.05)
@@ -69,6 +85,13 @@ def parse_args(argv=None):
         type=float,
         default=0.01,
         help="eval_manifest 없을 때 train에서 분리할 비율",
+    )
+
+    p.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default="",
+        help="체크포인트 경로에서 학습 재개 (빈 문자열이면 새로 시작)",
     )
 
     return p.parse_args(argv)
@@ -191,6 +214,76 @@ class StepTimingCallback(TrainerCallback):
 
 
 class WhisperTrainer(Trainer):
+    def __init__(
+        self,
+        *args,
+        dataloader_multiprocessing_context: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._dataloader_multiprocessing_context = dataloader_multiprocessing_context
+
+    def _get_dataloader(
+        self,
+        dataset,
+        description: str,
+        batch_size: int,
+        sampler_fn=None,
+        is_training: bool = False,
+        dataloader_key: Optional[str] = None,
+    ):
+        if self._dataloader_multiprocessing_context is None:
+            return super()._get_dataloader(
+                dataset=dataset,
+                description=description,
+                batch_size=batch_size,
+                sampler_fn=sampler_fn,
+                is_training=is_training,
+                dataloader_key=dataloader_key,
+            )
+
+        data_collator = self.data_collator
+        if is_datasets_available() and hasattr(dataset, "column_names"):
+            dataset = self._remove_unused_columns(dataset, description=description)
+        else:
+            data_collator = self._get_collator_with_removed_columns(
+                self.data_collator,
+                description=description,
+            )
+
+        dataloader_params = {
+            "batch_size": batch_size,
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+            "multiprocessing_context": self._dataloader_multiprocessing_context,
+        }
+
+        if not isinstance(dataset, torch.utils.data.IterableDataset):
+            if sampler_fn is not None:
+                dataloader_params["sampler"] = sampler_fn(dataset)
+            dataloader_params["drop_last"] = self.args.dataloader_drop_last
+            dataloader_params["prefetch_factor"] = self.args.dataloader_prefetch_factor
+            if is_training:
+                dataloader_params["worker_init_fn"] = partial(
+                    seed_worker,
+                    num_workers=self.args.dataloader_num_workers,
+                    rank=self.args.process_index,
+                )
+
+        dataloader = self.accelerator.prepare(
+            torch.utils.data.DataLoader(dataset, **dataloader_params)
+        )
+
+        if dataloader_key is not None and self.args.dataloader_persistent_workers:
+            if hasattr(self, "_eval_dataloaders"):
+                self._eval_dataloaders[dataloader_key] = dataloader
+            else:
+                self._eval_dataloaders = {dataloader_key: dataloader}
+
+        return dataloader
+
     def _prepare_inputs(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         inputs = super()._prepare_inputs(inputs)
         inputs.pop("input_ids", None)
@@ -228,17 +321,56 @@ def _split_train_eval(train_ds, eval_ratio: float, seed: int):
     return split["train"], split["test"]
 
 
+def _cached_dataloader_kwargs(use_cached: bool, dataloader_workers: int) -> dict[str, Any]:
+    """
+    Keep cached-mode workers warm across steps, but avoid over-prefetching when
+    multiple workers are already decoding cold-cache audio in parallel.
+    """
+    if not use_cached or dataloader_workers <= 0:
+        return {}
+
+    return {
+        "dataloader_persistent_workers": True,
+        "dataloader_prefetch_factor": 1 if dataloader_workers > 1 else 2,
+    }
+
+
+def _cached_multiprocessing_context(use_cached: bool, dataloader_workers: int) -> Optional[str]:
+    """
+    Use spawn workers for cached-mode training so DataLoader workers are not
+    forked from a process that already owns CUDA / Accelerate state.
+    """
+    if use_cached and dataloader_workers > 0:
+        return "spawn"
+    return None
+
+
 def main(argv=None):
     args = parse_args(argv)
     set_seed(args.seed)
     os.makedirs(args.output_dir, exist_ok=True)
 
-    train_ds = _load_and_cast_manifest(args.manifest)
+    use_cached = args.data_pipeline == "cached"
 
-    if args.eval_manifest:
-        eval_ds = _load_and_cast_manifest(args.eval_manifest)
+    if use_cached:
+        from lora_trainer.data_pipeline import build_cached_datasets, CachedDataCollator
+        from pathlib import Path as _Path
+        cache_dir = _Path(args.feature_cache_dir) if args.feature_cache_dir else None
+        train_ds, eval_ds = build_cached_datasets(
+            manifest_path_str=args.manifest,
+            eval_manifest_path_str=args.eval_manifest,
+            eval_ratio=args.eval_ratio,
+            seed=args.seed,
+            model_name=args.model_name,
+            cache_dir=cache_dir,
+            max_audio_sec=args.max_audio_sec,
+        )
     else:
-        train_ds, eval_ds = _split_train_eval(train_ds, args.eval_ratio, args.seed)
+        train_ds = _load_and_cast_manifest(args.manifest)
+        if args.eval_manifest:
+            eval_ds = _load_and_cast_manifest(args.eval_manifest)
+        else:
+            train_ds, eval_ds = _split_train_eval(train_ds, args.eval_ratio, args.seed)
 
     processor = WhisperProcessor.from_pretrained(
         args.model_name,
@@ -281,6 +413,16 @@ def main(argv=None):
     model.print_trainable_parameters()
 
     use_epochs = args.num_epochs > 0
+
+    extra_dl_kwargs = _cached_dataloader_kwargs(
+        use_cached=use_cached,
+        dataloader_workers=args.dataloader_workers,
+    )
+    dataloader_multiprocessing_context = _cached_multiprocessing_context(
+        use_cached=use_cached,
+        dataloader_workers=args.dataloader_workers,
+    )
+
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
@@ -310,20 +452,28 @@ def main(argv=None):
         remove_unused_columns=False,
         dataloader_num_workers=args.dataloader_workers,
         dataloader_pin_memory=bool(args.pin_memory),
+        **extra_dl_kwargs,
     )
+
+    if use_cached:
+        collator = CachedDataCollator(processor)
+    else:
+        collator = DataCollatorSpeechSeq2Seq(processor, max_audio_sec=args.max_audio_sec)
 
     trainer = WhisperTrainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
-        data_collator=DataCollatorSpeechSeq2Seq(
-            processor, max_audio_sec=args.max_audio_sec
-        ),
+        data_collator=collator,
         callbacks=[StepTimingCallback()],
+        dataloader_multiprocessing_context=dataloader_multiprocessing_context,
     )
 
-    train_result = trainer.train()
+    resume_ckpt = getattr(args, "resume_from_checkpoint", "") or None
+    if resume_ckpt:
+        print(f"[resume] Resuming from checkpoint: {resume_ckpt}")
+    train_result = trainer.train(resume_from_checkpoint=resume_ckpt)
 
     model.save_pretrained(args.output_dir)
     processor.save_pretrained(args.output_dir)

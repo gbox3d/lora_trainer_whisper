@@ -9,7 +9,7 @@
 
 - `src/dataset_tools/`: 데이터셋 준비 패키지 (manifest 생성, 유효성 검사). ML 의존 없음
 - `src/lora_trainer/`: LoRA 학습/평가/추론/병합/CT2 변환 패키지. ML 의존 (torch, transformers, peft 등)
-- `_forAI/`: local AI-facing notes, plans, and maintenance log
+- `_forAI/`: repo-tracked AI collaboration workspace (`README.md`, `inventory.md`, `memo.md`, `data_prep.md`, `dev_log.md`, `plan.md`)
 - `datasets/`: input datasets and generated `manifest.jsonl` files; sample data exists under `datasets/Sample`
 - `outputs/`: training checkpoints, merged models, TensorBoard runs, and CT2 export targets
 - `.venv/`: local `uv` virtual environment
@@ -33,6 +33,7 @@
 - `eval_dataset_lora.py`: compares LoRA output against a base Whisper model on a manifest
 - `infer_lora.py`: single-file inference using a base model plus LoRA adapter
 - `compare_infer.py`: side-by-side base vs LoRA inference with optional normalization and metrics
+- `data_pipeline.py`: cached data pipeline (`CachedWhisperDataset`, `CachedDataCollator`, `build_cached_datasets`); used when `--data-pipeline cached` is passed; no `datasets.Audio` dependency
 - `merge_peft.py`: merges a LoRA adapter into the base model for export
 - `eval_dataset_ct2.py`: compares PyTorch Whisper and Faster-Whisper/CT2 outputs
 - `test_run_ct2.py`: manual smoke test for a converted CT2 model
@@ -51,6 +52,7 @@
 - Unified CLI (엔트리포인트): `uv run runner-cli <subcommand> [args]`
 - Dataset CLI (엔트리포인트): `uv run whisper-dataset <subcommand> [args]` (manifest, validate)
 - Dataset validate: `uv run python runner_cli.py validate <root> [--check-audio] [--clean]`
+- Tests: `uv run pytest tests/`
 - Single-GPU training: `uv run python train_whisper_lora.py --model_name openai/whisper-large-v3 --manifest datasets/Sample/manifest.jsonl --output_dir outputs/large-v3_lora`
 - Multi-GPU training: `uv run torchrun --nproc_per_node=2 train_whisper_lora.py ...`
 - LoRA evaluation: `uv run python eval_dataset_lora.py --manifest ... --base_model ... --lora_dir ...`
@@ -60,16 +62,16 @@
 
 ## Tests
 
-- No formal `pytest` or CI-based test suite is present in the repository root.
-- `test_run_ct2.py` is a manual smoke test for converted CT2/Faster-Whisper inference.
-- `check.py` is also a manual validation tool for local environment readiness.
-- Current confidence comes from ad hoc script execution rather than repeatable automated tests.
+- `tests/test_data_pipeline.py`: `data_pipeline.py` 단위 테스트 (pytest)
+- `test_run_ct2.py` (`src/lora_trainer/`): manual smoke test for converted CT2/Faster-Whisper inference
+- `check.py` (`src/lora_trainer/`): local environment and CUDA/torchcodec verification script
 
 ## Notes
 
 - The project uses `uv` and pins PyTorch packages through a custom CUDA 13.0 index in `pyproject.toml`.
+- `_forAI/` is currently repo-tracked and has commit history in this repository; it is not a git-ignored local-only scratch area.
 - 2026-04-09: `src/` 패키지 구조로 전환. `dataset_tools` (경량)과 `lora_trainer` (ML) 두 패키지로 분리. 루트 스크립트는 얇은 래퍼로 유지하여 dalus_server 호환성 보존.
-- `pyproject.toml`에 hatchling 빌드 시스템과 `[project.scripts]` 콘솔 엔트리포인트 추가 (`runner-cli`, `whisper-dataset`, `validate-dataset`).
+- `pyproject.toml`에 hatchling 빌드 시스템과 `[project.scripts]` 콘솔 엔트리포인트 추가 (`runner-cli`, `whisper-dataset`).
 - dalus_server는 여전히 `uv run python runner_cli.py <cmd>` 형식으로 호출하며, 루트 래퍼가 이를 `lora_trainer.runner_cli`로 위임.
 - `validate_dataset.py`가 `dataset_tools`에 추가됨 (dev_dataset_tools 브랜치에서 통합). manifest 유효성 검사, WAV 헤더 검사, 불량 행 제거 기능.
 - Manifest `audio` 필드는 2026-04-03부터 기본적으로 `manifest.jsonl` 기준 상대경로를 사용한다.

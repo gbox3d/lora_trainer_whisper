@@ -1,9 +1,3 @@
----
-name: data_prep
-description: 데이터셋 구조화 및 manifest 관리 원칙
-type: reference
----
-
 # 데이터셋 준비 원칙
 
 본 프로젝트(`lora_trainer_whisper`)에 데이터를 추가하거나 정리할 때 따를 기본 규칙입니다. 특정 디스크/경로 대신 데이터의 형태 처리에 집중합니다.
